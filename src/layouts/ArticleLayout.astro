@@ -17,6 +17,7 @@ interface TocEntry {
 }
 
 interface Props {
+  runtimeDocument?: boolean;
   title: string;
   description?: string;
   sourceDocUrl?: string;
@@ -35,8 +36,8 @@ interface Props {
   contentHtml?: string;
   backLink?: { label: string; href: string };
 }
-const { title, description, sourceDocUrl, mirrorUrl, breadcrumb, toc, contentHtml, current = 'posts', bodyClass = '', highlightCode = Boolean(sourceDocUrl), syncedAt, sourceRevision, readingMinutes, publishedAt, updatedAt, syncDocument, backLink } = Astro.props;
-const readingLabel = formatReadingTime(readingMinutes ?? estimateReadingMinutes(contentHtml ?? ''));
+const { runtimeDocument = false, title, description, sourceDocUrl, mirrorUrl, breadcrumb, toc, contentHtml, current = 'posts', bodyClass = '', highlightCode = Boolean(sourceDocUrl), syncedAt, sourceRevision, readingMinutes, publishedAt, updatedAt, syncDocument, backLink } = Astro.props;
+const readingLabel = runtimeDocument ? "__FS_READING__" : formatReadingTime(readingMinutes ?? estimateReadingMinutes(contentHtml ?? ''));
 
 const renderedHtml = contentHtml ? siteHtml(highlightCode ? await highlightDocument(contentHtml) : contentHtml) : contentHtml;
 ---
@@ -46,7 +47,7 @@ const renderedHtml = contentHtml ? siteHtml(highlightCode ? await highlightDocum
   current={current}
   bodyClass={`article-page document-page ${bodyClass}`}
 >
-  {toc.length > 0 && <TocToggle />}
+  {(runtimeDocument || toc.length > 0) && <TocToggle />}
 
   <Breadcrumb items={breadcrumb} />
 
@@ -55,6 +56,7 @@ const renderedHtml = contentHtml ? siteHtml(highlightCode ? await highlightDocum
       <span class="document-reading-time">{readingLabel}</span>
       {publishedAt && !updatedAt && <span>发布于 <time datetime={publishedAt}>{formatArticleDate(publishedAt)}</time></span>}
       {updatedAt && <span>最后更新 <time datetime={updatedAt}>{formatArticleDate(updatedAt)}</time></span>}
+      {runtimeDocument && <span>更新于 <time>__FS_UPDATED__</time></span>}
       {syncedAt && <span title={`网页为同步副本，飞书版本 ${sourceRevision ?? ''}`}>同步于 <time datetime={syncedAt}>{formatArticleDate(syncedAt, true)}</time></span>}
     </div>
     <div class="document-actions">
@@ -65,7 +67,7 @@ const renderedHtml = contentHtml ? siteHtml(highlightCode ? await highlightDocum
     </div>
   </div>
 
-  {showWork && syncDocument && <DocumentSync document={syncDocument} revision={sourceRevision} />}
+  {showWork && syncDocument && <DocumentSync document={syncDocument} revision={runtimeDocument ? '__FS_REVISION__' : sourceRevision} />}
 
   <main class="article-layout">
     <article class="article-content">
@@ -74,12 +76,13 @@ const renderedHtml = contentHtml ? siteHtml(highlightCode ? await highlightDocum
         <p>
           内容来自飞书文档
           <a href={sourceDocUrl} target="_blank" rel="noopener">{title} ↗</a>
-          。网页为同步副本，最新内容请查看原文。
+          。{runtimeDocument ? '内容自动更新；飞书暂不可用时保留上次成功内容。' : '网页为同步副本，最新内容请查看原文。'}
         </p>
       </div>}
     </article>
 
     <aside class="article-sidebar" id="article-toc">
+      {runtimeDocument && <nav class="article-toc" aria-label="目录"><div class="toc-heading"><div class="toc-title">本文目录</div><button class="toc-close" type="button" aria-label="关闭目录">关闭</button></div><Fragment set:html="__FS_TOC__" /></nav>}
       {toc.length > 0 && (
         <nav class="article-toc" aria-label="目录">
           <div class="toc-heading"><div class="toc-title">本文目录</div><button class="toc-close" type="button" aria-label="关闭目录">关闭</button></div>
